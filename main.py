@@ -43,15 +43,16 @@ async def handle_voice(message: types.Message, bot: Bot):
 
         # Generate Zettelkasten note using LLaMA 3.3
         await msg.edit_text("🧠 Formatting Zettelkasten note...")
+        # Generate Zettelkasten note dynamically adapting to the user's language
         prompt = f"""
         You are my Obsidian Zettelkasten assistant.
         I dictated a raw stream of thoughts: "{raw_text}"
 
-        Do the following:
-        1. Create a short, catchy title (in Russian).
-        2. Write 2-3 tags (e.g., #inbox, #мысль) (in Russian).
-        3. Make a brief summary (1-2 sentences in Russian).
-        4. Print the header "### 🎙 Сырой транскрипт:" and output the EXACT literal transcript of my voice without any edits or formatting.
+        Detect the language of the dictated text and do the following strictly in that SAME language:
+        1. Create a short, catchy title.
+        2. Write 2-3 tags (e.g., #inbox, #idea).
+        3. Make a brief summary (1-2 sentences).
+        4. Print the header "### 🎙 Raw Transcript:" (translated to the detected language, e.g., "### 🎙 Сырой транскрипт:" for Russian) and output the EXACT literal transcript of my voice without any edits or formatting.
 
         Return the response strictly in Markdown format. No greetings, no extra text, just the note itself.
         """

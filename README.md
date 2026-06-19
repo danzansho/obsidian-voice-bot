@@ -7,8 +7,13 @@ This project solves the issue of slow mobile Obsidian app loading times by allow
 ## How It Works
 1. You record a quick voice message in Telegram.
 2. The bot downloads the audio and transcribes it using Whisper (via Groq API).
-3. The raw transcript is passed to LLaMA 3.3 to generate tags, a summary, and format it.
+3. The raw transcript is passed to LLaMA 3.3 to detect the language, generate tags, a summary, and format it.
 4. The bot saves a .md file directly into your Obsidian Inbox folder.
+
+## Features
+- **Zero Friction:** Capture ideas on the go via Telegram.
+- **Multilingual Support:** Automatically detects your voice language and generates the title, tags, and summary in that same language.
+- **Direct Vault Sync:** Saves notes straight to your local Obsidian folder.
 
 ## Prerequisites
 - Python 3.11+
@@ -45,12 +50,12 @@ python main.py
 Now, go to Telegram, open your bot, and send a voice message. Within seconds, a new formatted .md file will magically appear in your Obsidian Inbox folder.
 
 ## Note Template Output
-The generated note will look like this:
+The generated note dynamically adapts to the language of your voice message. For an English voice note, it will look like this:
 
 # [AI-Generated Title]
 #inbox #idea #topic
 
 Brief summary of your stream of thoughts.
 
-### 🎙 Сырой транскрипт:
+### 🎙 Raw Transcript:
 [Exact literal transcription of your voice]
