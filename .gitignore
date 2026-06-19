@@ -1,0 +1,4 @@
+venv/
+.env
+*.ogg
+tempCodeRunnerFile.py
