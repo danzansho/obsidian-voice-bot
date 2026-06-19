@@ -1,38 +1,39 @@
 import asyncio
 import os
-import datetime # <-- Добавили для времени
+import datetime
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from dotenv import load_dotenv
 from groq import Groq
 
-# 1. Загружаем ключи и пути
+# 1. Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-INBOX_PATH = os.getenv("INBOX_PATH") # <-- Подтянули путь к Обсидиану
+INBOX_PATH = os.getenv("INBOX_PATH")
 
+# 2. Initialize Telegram Bot and Groq Client
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 groq_client = Groq(api_key=GROQ_API_KEY)
 
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message):
-    await message.answer("Здарова. Готов закидывать мысли прямо в твой Obsidian.")
+    await message.answer("Hello! I am your Obsidian Zettelkasten assistant. Send me a voice message to capture your thoughts.")
 
 @dp.message(F.voice)
 async def handle_voice(message: types.Message, bot: Bot):
-    msg = await message.answer("⏳ Скачиваю аудио...")
+    msg = await message.answer("⏳ Downloading audio...")
     destination = "temp_voice.ogg"
 
     try:
-        # Скачиваем
+        # Download voice file from Telegram
         file_id = message.voice.file_id
         file = await bot.get_file(file_id)
         await bot.download_file(file.file_path, destination)
 
-        # Расшифровываем
-        await msg.edit_text("🎧 Слушаю и расшифровываю...")
+        # Transcribe audio using Groq Whisper API
+        await msg.edit_text("🎧 Transcribing audio...")
         with open(destination, "rb") as audio_file:
             transcription = groq_client.audio.transcriptions.create(
               file=(destination, audio_file.read()),
@@ -40,19 +41,19 @@ async def handle_voice(message: types.Message, bot: Bot):
             )
         raw_text = transcription.text
 
-        # Генерируем заметку
-        await msg.edit_text("🧠 Упаковываю по методу Лумана...")
+        # Generate Zettelkasten note using LLaMA 3.3
+        await msg.edit_text("🧠 Formatting Zettelkasten note...")
         prompt = f"""
-        Ты мой ассистент для базы знаний Obsidian.
-        Вот мой сырой поток мыслей: "{raw_text}"
+        You are my Obsidian Zettelkasten assistant.
+        I dictated a raw stream of thoughts: "{raw_text}"
 
-        Сделай следующее:
-        1. Придумай короткий заголовок.
-        2. Напиши 2-3 тега (например, #inbox, #мысль).
-        3. Сделай краткую выжимку (1-2 предложения).
-        4. Выведи заголовок "### 🎙 Сырой транскрипт:" и напиши точный дословный текст без изменений.
+        Do the following:
+        1. Create a short, catchy title (in Russian).
+        2. Write 2-3 tags (e.g., #inbox, #мысль) (in Russian).
+        3. Make a brief summary (1-2 sentences in Russian).
+        4. Print the header "### 🎙 Сырой транскрипт:" and output the EXACT literal transcript of my voice without any edits or formatting.
 
-        Верни ответ строго в формате Markdown. Никаких приветствий, только сама заметка.
+        Return the response strictly in Markdown format. No greetings, no extra text, just the note itself.
         """
 
         chat_completion = groq_client.chat.completions.create(
@@ -61,32 +62,27 @@ async def handle_voice(message: types.Message, bot: Bot):
         )
         final_note = chat_completion.choices[0].message.content
 
-        # ==========================================
-        # МАГИЯ: СОХРАНЯЕМ ФАЙЛ ПРЯМО В OBSIDIAN
-        # ==========================================
-        # Генерируем имя файла: Год-Месяц-День_Часы-Минуты-Секунды.md
+        # Generate unique filename using timestamp
         current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         filename = f"Idea_{current_time}.md"
 
-        # Склеиваем путь к папке и имя файла
+        # Save note directly to Obsidian Inbox folder
         full_path = os.path.join(INBOX_PATH, filename)
-
-        # Записываем текст в файл (обязательно utf-8, чтобы русский язык не сломался)
         with open(full_path, "w", encoding="utf-8") as f:
             f.write(final_note)
 
-        await msg.edit_text(f"✅ Готово! Заметка улетела в Obsidian:\n`{filename}`")
+        await msg.edit_text(f"✅ Success! Note saved to Obsidian:\n`{filename}`")
 
     except Exception as e:
-        await msg.edit_text(f"❌ Ошибка: {e}")
+        await msg.edit_text(f"❌ Error occurred: {e}")
 
     finally:
-        # Убираем за собой аудиофайл
+        # Cleanup temporary audio file
         if os.path.exists(destination):
             os.remove(destination)
 
 async def main():
-    print("Бот запущен! Жду голосовухи.")
+    print("Bot is running. Waiting for voice messages...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
