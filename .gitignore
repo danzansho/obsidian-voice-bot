@@ -3,3 +3,4 @@ venv/
 *.ogg
 tempCodeRunnerFile.py
 *.db
+*.log

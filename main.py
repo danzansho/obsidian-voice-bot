@@ -1,17 +1,28 @@
 import asyncio
 import os
 import datetime
+import logging  # <-- Standard library for professional logging
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-from aiogram.client.default import DefaultBotProperties  # <-- For auto-formatting
-from aiogram.types import BotCommand  # <-- For Telegram Menu Button
+from aiogram.client.default import DefaultBotProperties
+from aiogram.types import BotCommand
 from dotenv import load_dotenv
 from groq import Groq
 
 # Import database helpers
 import database
+
+# Configure logging to output to both console and a log file
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("bot.log", encoding="utf-8"),  # Saves logs to file
+        logging.StreamHandler()                            # Prints logs to console
+    ]
+)
 
 # Load environment variables
 load_dotenv()
@@ -31,6 +42,7 @@ class SetupStates(StatesGroup):
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
+    logging.info(f"User {user_id} triggered /start")
     user_data = await database.get_user_data(user_id)
 
     if user_data:
@@ -47,31 +59,28 @@ async def cmd_start(message: types.Message, state: FSMContext):
             f"Please send me the *absolute path* to your Obsidian `1 - Inbox` folder on your computer."
         )
 
-    # Set the FSM state to wait for user input
     await state.set_state(SetupStates.waiting_for_path)
 
 # Handler to capture the Obsidian path
-# Handler to capture the Obsidian path with validation
 @dp.message(SetupStates.waiting_for_path)
 async def process_path(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     path = message.text.strip()
-
-    # Normalize Windows backslashes to forward slashes
     normalized_path = path.replace("\\", "/")
 
-    # VALIDATION: Check if the directory actually exists on this machine
+    # Validation: Check if the directory actually exists on this machine
     if not os.path.isdir(normalized_path):
+        logging.warning(f"User {user_id} provided invalid path: {normalized_path}")
         await message.answer(
             f"❌ *Invalid Path!*\n\n"
             f"The directory `{normalized_path}` does not exist on this machine.\n"
             f"Please make sure you created the folder, copied the path correctly, and try again."
         )
-        # We do NOT clear the state here, so the bot keeps waiting for a valid path
         return
 
-    # If path is valid, save to SQLite database asynchronously
+    # Save path to SQLite database asynchronously
     await database.save_user_path(user_id, normalized_path)
+    logging.info(f"User {user_id} successfully set path to: {normalized_path}")
 
     await message.answer(
         f"✅ *Path saved successfully!*\n\n"
@@ -80,18 +89,18 @@ async def process_path(message: types.Message, state: FSMContext):
         f"📊 Use the /stats command to monitor your free note limits."
     )
 
-    # Clear FSM state to return to normal mode
     await state.clear()
 
 # Handler for /stats command
 @dp.message(Command(commands=["stats"]))
 async def cmd_stats(message: types.Message):
     user_id = message.from_user.id
+    logging.info(f"User {user_id} requested statistics")
     user_data = await database.get_user_data(user_id)
 
     if user_data:
         notes_count = user_data["notes_created"]
-        limit = 30  # Free tier limit
+        limit = 30
         await message.answer(
             f"📊 *Your Obsidian Bot Stats:*\n\n"
             f"📂 *Vault Path:* `{user_data['path']}`\n"
@@ -105,8 +114,8 @@ async def cmd_stats(message: types.Message):
 @dp.message(F.voice)
 async def handle_voice(message: types.Message, bot: Bot):
     user_id = message.from_user.id
+    logging.info(f"Received voice message from user {user_id}")
 
-    # Retrieve user data asynchronously
     user_data = await database.get_user_data(user_id)
 
     if not user_data:
@@ -115,14 +124,13 @@ async def handle_voice(message: types.Message, bot: Bot):
 
     inbox_path = user_data["path"]
     notes_count = user_data["notes_created"]
-    limit = 30  # Free tier limit
+    limit = 30
 
-    # Paywall check
     if notes_count >= limit:
+        logging.warning(f"User {user_id} blocked: limit reached ({notes_count}/{limit})")
         await message.answer(
-            "❌ *Limit Reached!*\n\n"
-            "You have used all 30 free notes. "
-            "Please upgrade to Pro by contacting the administrator to get unlimited access! 💰"
+            "❌ *Limit reached!*\n\n"
+            "You have used all 30 free notes. Please contact the administrator to upgrade to Pro."
         )
         return
 
@@ -130,12 +138,13 @@ async def handle_voice(message: types.Message, bot: Bot):
     destination = "temp_voice.ogg"
 
     try:
-        # Download voice file from Telegram
+        # Download voice file
         file_id = message.voice.file_id
         file = await bot.get_file(file_id)
         await bot.download_file(file.file_path, destination)
+        logging.info(f"Audio file downloaded successfully for user {user_id}")
 
-        # Transcribe audio using Groq Whisper API
+        # Transcribe audio
         await msg.edit_text("🎧 Transcribing audio...")
         with open(destination, "rb") as audio_file:
             transcription = groq_client.audio.transcriptions.create(
@@ -143,8 +152,9 @@ async def handle_voice(message: types.Message, bot: Bot):
               model="whisper-large-v3",
             )
         raw_text = transcription.text
+        logging.info(f"Audio successfully transcribed for user {user_id}")
 
-        # Generate Zettelkasten note using LLaMA 3.3
+        # Generate Zettelkasten note
         await msg.edit_text("🧠 Formatting Zettelkasten note...")
         prompt = f"""
         You are my Obsidian Zettelkasten assistant.
@@ -165,17 +175,18 @@ async def handle_voice(message: types.Message, bot: Bot):
         )
         final_note = chat_completion.choices[0].message.content
 
-        # Generate unique filename using timestamp
+        # Generate filename
         current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         filename = f"Idea_{current_time}.md"
 
-        # Save note directly to Obsidian Inbox folder
+        # Save note to Obsidian
         full_path = os.path.join(inbox_path, filename)
         with open(full_path, "w", encoding="utf-8") as f:
             f.write(final_note)
 
-        # Increment counter in the database asynchronously
+        # Increment counter
         await database.increment_notes_counter(user_id)
+        logging.info(f"Note successfully saved to {full_path} for user {user_id}")
 
         new_count = notes_count + 1
         await msg.edit_text(
@@ -184,25 +195,25 @@ async def handle_voice(message: types.Message, bot: Bot):
         )
 
     except Exception as e:
+        logging.error(f"Error occurred while processing voice from user {user_id}: {e}")
         await msg.edit_text(f"❌ Error occurred: {e}")
 
     finally:
-        # Cleanup temporary audio file
+        # Cleanup temp file
         if os.path.exists(destination):
             os.remove(destination)
+            logging.info("Temporary audio file cleaned up")
 
 # Main entry point
 async def main():
-    # Initialize database tables asynchronously
     await database.init_db()
 
-    # Register bot commands programmatically in Telegram Menu Button (UX upgrade)
     await bot.set_my_commands([
         BotCommand(command="start", description="Set up or update your Obsidian path"),
         BotCommand(command="stats", description="Check your usage statistics")
     ])
 
-    print("Database initialized. Bot is running...")
+    logging.info("Database initialized. Bot is running...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
