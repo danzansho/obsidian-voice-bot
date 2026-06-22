@@ -2,3 +2,4 @@ venv/
 .env
 *.ogg
 tempCodeRunnerFile.py
+*.db
