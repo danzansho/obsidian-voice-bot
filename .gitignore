@@ -4,3 +4,4 @@ venv/
 tempCodeRunnerFile.py
 *.db
 *.log
+ngrok.exe
