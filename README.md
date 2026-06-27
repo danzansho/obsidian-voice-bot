@@ -1,61 +1,30 @@
-# Obsidian Voice-to-Zettelkasten Bot 🎙🤖
+# Obsidian Voice Zettelkasten Bot 🎙️🧠
 
-A lightweight Telegram bot written in Python that instantly captures your voice notes, transcribes them using AI, formats them into structured Zettelkasten notes, and saves them directly into your local Obsidian vault.
+An elegant, production-ready Telegram Bot designed to capture your raw voice thoughts on the go, transcribe them with high accuracy, and format them into perfectly structured Markdown notes for your Obsidian vault — with **zero friction**.
 
-This project solves the issue of slow mobile Obsidian app loading times by allowing frictionless, zero-delay voice capture on the go.
+Developed with Python, aiogram 3.x, Groq API (Whisper-large-v3 + LLaMA 3.3 70B), FastAPI, and SQLite.
 
-## How It Works
-1. You record a quick voice message in Telegram.
-2. The bot downloads the audio and transcribes it using Whisper (via Groq API).
-3. The raw transcript is passed to LLaMA 3.3 to detect the language, generate tags, a summary, and format it.
-4. The bot saves a .md file directly into your Obsidian Inbox folder.
+---
 
-## Features
-- **Zero Friction:** Capture ideas on the go via Telegram.
-- **Multilingual Support:** Automatically detects your voice language and generates the title, tags, and summary in that same language.
-- **Direct Vault Sync:** Saves notes straight to your local Obsidian folder.
+## The Problem we solve 🛑
+Mobile capture in Obsidian is slow. Waiting for plugins to load, creating files manually, and typing on a small keyboard destroys the creative flow.
 
-## Prerequisites
-- Python 3.11+
-- A Telegram Bot Token (from @BotFather)
-- A Groq API Key (free from console.groq.com)
-- A local Obsidian vault
+**Our Solution:**
+1. Open Telegram, press record, ramble your thoughts.
+2. The bot transcribes your voice (Whisper) and uses LLaMA 3.3 to structure the raw text into a clean Zettelkasten note with automatic titles, tags, and bullet-point summaries.
+3. Tap the generated **Quick Add link** (which triggers a secure redirect to the `obsidian://` protocol) or download the `.md` file directly. Done.
 
-## Installation & Setup
+---
 
-1. Clone the repository:
-git clone https://github.com/danzansho/obsidian-voice-bot.git
-cd obsidian-voice-bot
+## Features ✨
+- ⚡ **Zero Friction Capture:** No heavy setup required. Type `/start` and start recording.
+- 🧠 **AI-Powered Structuring:** LLaMA 3.3 automatically cleans up your stutters, extracts key ideas into bullet points, and generates semantic titles.
+- 📂 **Auto-YAML Frontmatter:** Note is created with valid YAML metadata (`title`, `date`, `time`, `tags`) directly in Python to avoid layout bugs.
+- 🔗 **Smart Deep-Linking:** Automatically generates `obsidian://` links for one-tap import into your local mobile or desktop vault via an HTTPS redirect bridge.
+- 📋 **One-Tap Copy Block:** Text is duplicated in a special `<pre><code>` block for instant clipboard copy on mobile.
+- 📬 **Feedback Loop:** Built-in `/support` ticketing system to forward user messages directly to the admin.
+- 🛡️ **Production-Ready Core:** Features atomic database counters, rotating logs, async architecture (`aiosqlite` + `aiogram`), and full error recovery.
 
-2. Create and activate a virtual environment:
-python -m venv venv
-source venv/Scripts/activate  # On Windows Git Bash
+---
 
-3. Install dependencies:
-pip install aiogram python-dotenv groq
-
-4. Configure environment variables:
-Create a .env file in the root folder and add the following:
-BOT_TOKEN=your_telegram_bot_token
-GROQ_API_KEY=your_groq_api_key
-INBOX_PATH=C:/Path/To/Your/Obsidian/Vault/1 - Inbox
-
-(Note: Use forward slashes / in INBOX_PATH even on Windows to prevent path escaping issues).
-
-## Usage
-
-Run the bot locally:
-python main.py
-
-Now, go to Telegram, open your bot, and send a voice message. Within seconds, a new formatted .md file will magically appear in your Obsidian Inbox folder.
-
-## Note Template Output
-The generated note dynamically adapts to the language of your voice message. For an English voice note, it will look like this:
-
-# [AI-Generated Title]
-#inbox #idea #topic
-
-Brief summary of your stream of thoughts.
-
-### 🎙 Raw Transcript:
-[Exact literal transcription of your voice]
+## Technical Architecture ⚙️
