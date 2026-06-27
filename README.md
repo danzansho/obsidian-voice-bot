@@ -28,3 +28,50 @@ Mobile capture in Obsidian is slow. Waiting for plugins to load, creating files 
 ---
 
 ## Technical Architecture ⚙️
+```
+[User Voice] -> (Telegram Bot) -> [Whisper API] -> [LLaMA 3.3] -> [Python YAML Formatter] -> [FastAPI Redirect] -> [Obsidian Vault]
+```
+
+---
+
+## Installation & Self-Hosting 🛠️
+
+### Prerequisites
+- Python 3.11+
+- Groq API Key
+- Telegram Bot Token (from @BotFather)
+
+### Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/danzansho/obsidian-voice-bot.git
+   cd obsidian-voice-bot
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Create a `.env` file in the root folder:
+   ```env
+   BOT_TOKEN=your_telegram_bot_token
+   GROQ_API_KEY=your_groq_api_key
+   ADMIN_ID=your_telegram_user_id_for_support_tickets
+   REDIRECT_BASE_URL=https://your-redirect-domain.com
+   ```
+
+4. Run the database initialization and the bot:
+   ```bash
+   python main.py
+   ```
+
+5. Run the local FastAPI redirect server (if testing locally on port 8000):
+   ```bash
+   uvicorn redirect_server:app --host 0.0.0.0 --port 8000 --reload
+   ```
+
+---
+
+## License 📄
+This project is open-source and licensed under the MIT License.
