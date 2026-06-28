@@ -1,0 +1,13 @@
+[Unit]
+Description=FastAPI Obsidian Redirect Server
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/obsidian_voice_bot
+ExecStart=/root/obsidian_voice_bot/venv/bin/uvicorn redirect_server:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

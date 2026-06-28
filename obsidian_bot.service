@@ -1,0 +1,13 @@
+[Unit]
+Description=Telegram Obsidian Voice Bot
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/obsidian_voice_bot
+ExecStart=/root/obsidian_voice_bot/venv/bin/python main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
