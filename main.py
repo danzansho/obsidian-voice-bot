@@ -10,8 +10,8 @@ from logging.handlers import RotatingFileHandler
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
-from aiogram.fsm.state import StatesGroup, State       # <-- ДОБАВИЛ ИМПОРТ
-from aiogram.fsm.context import FSMContext              # <-- ДОБАВИЛ ИМПОРТ
+from aiogram.fsm.state import StatesGroup, State      
+from aiogram.fsm.context import FSMContext            
 from aiogram.client.default import DefaultBotProperties
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import BotCommand, FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
